@@ -27,19 +27,6 @@ const BUTTON_ROWS: string[][] = [
 const OPERATOR_SET = new Set(['+', '−', '×', '÷']);
 const DIGIT_SET = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']);
 
-const FEATURE_LIST = [
-  'Memory recall/store controls (MC, MR, M+, M-)',
-  'Square root (√)',
-  'Square (x²)',
-  'Reciprocal (1/x)',
-  'Clear entry (CE)',
-  'Running calculation history',
-  'Copy-friendly history snippets',
-  'Keyboard support on web',
-  'Repeated equals support',
-  'Percent and sign toggle helpers',
-];
-
 function toNumber(value: string): number {
   return Number(value);
 }
@@ -254,8 +241,6 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Calki Pro</Text>
-        <Text style={styles.subtitle}>No tabs. 10 built-in features. No permission prompts.</Text>
-
         <View style={styles.displayCard} accessibilityLabel="Calculator display" accessible>
           <Text style={styles.previousLine} numberOfLines={1}>
             {state.prev || ' '}
@@ -296,15 +281,6 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.panel}>
-          <Text style={styles.panelTitle}>10 new features</Text>
-          {FEATURE_LIST.map((feature) => (
-            <Text key={feature} style={styles.panelText}>
-              • {feature}
-            </Text>
-          ))}
-        </View>
-
-        <View style={styles.panel}>
           <Text style={styles.panelTitle}>Recent history</Text>
           {history.length === 0 ? (
             <Text style={styles.panelText}>No calculations yet.</Text>
@@ -336,10 +312,6 @@ const styles = StyleSheet.create({
     color: '#E2E8F0',
     fontSize: 34,
     fontWeight: '700',
-  },
-  subtitle: {
-    color: '#94A3B8',
-    fontSize: 14,
   },
   displayCard: {
     backgroundColor: '#0F172A',
