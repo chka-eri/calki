@@ -1,98 +1,232 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import {
+  backspace,
+  chooseOperator,
+  clearAll,
+  equals,
+  inputDigit,
+  inputDot,
+  percent,
+  toggleSign,
+  type CalcState,
+  type Operator,
+} from '@/src/utils/calcEngine';
+
+const BUTTON_ROWS: string[][] = [
+  ['AC', '⌫', '+/-', '÷'],
+  ['7', '8', '9', '×'],
+  ['4', '5', '6', '−'],
+  ['1', '2', '3', '+'],
+  ['%', '0', '.', '='],
+];
+
+const OPERATOR_SET = new Set(['+', '−', '×', '÷']);
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [state, setState] = useState<CalcState>(clearAll);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const onPressKey = useCallback((label: string) => {
+    setState((current) => {
+      if (/^\d$/.test(label)) {
+        return inputDigit(current, label);
+      }
+
+      if (label === '.') {
+        return inputDot(current);
+      }
+
+      if (OPERATOR_SET.has(label)) {
+        return chooseOperator(current, label as Operator);
+      }
+
+      switch (label) {
+        case 'AC':
+          return clearAll();
+        case '⌫':
+          return backspace(current);
+        case '=':
+          return equals(current);
+        case '+/-':
+          return toggleSign(current);
+        case '%':
+          return percent(current);
+        default:
+          return current;
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const { key } = event;
+
+      if (/^\d$/.test(key)) {
+        event.preventDefault();
+        onPressKey(key);
+        return;
+      }
+
+      if (key === '.') {
+        event.preventDefault();
+        onPressKey('.');
+        return;
+      }
+
+      if (key === '+' || key === '-') {
+        event.preventDefault();
+        onPressKey(key === '+' ? '+' : '−');
+        return;
+      }
+
+      if (key === '*' || key.toLowerCase() === 'x') {
+        event.preventDefault();
+        onPressKey('×');
+        return;
+      }
+
+      if (key === '/') {
+        event.preventDefault();
+        onPressKey('÷');
+        return;
+      }
+
+      if (key === 'Enter' || key === '=') {
+        event.preventDefault();
+        onPressKey('=');
+        return;
+      }
+
+      if (key === 'Backspace') {
+        event.preventDefault();
+        onPressKey('⌫');
+        return;
+      }
+
+      if (key === 'Escape') {
+        event.preventDefault();
+        onPressKey('AC');
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onPressKey]);
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Calki</Text>
+
+        <View style={styles.displayCard} accessibilityLabel="Calculator display" accessible>
+          <Text style={styles.previousLine} numberOfLines={1}>
+            {state.prev || ' '}
+          </Text>
+          <Text style={styles.currentLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+            {state.display}
+          </Text>
+        </View>
+
+        <View style={styles.keypad}>
+          {BUTTON_ROWS.map((row) => (
+            <View style={styles.row} key={row.join('-')}>
+              {row.map((label) => {
+                const isOperator = OPERATOR_SET.has(label);
+                const isEquals = label === '=';
+
+                return (
+                  <Pressable
+                    key={label}
+                    onPress={() => onPressKey(label)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Calculator button ${label}`}
+                    style={({ pressed }) => [
+                      styles.key,
+                      isOperator && styles.operatorKey,
+                      isEquals && styles.equalsKey,
+                      pressed && styles.pressedKey,
+                    ]}>
+                    <Text style={styles.keyText}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    justifyContent: 'space-between',
+  },
+  title: {
+    color: '#F8FAFC',
+    fontSize: 34,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  displayCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
+    padding: 20,
+    minHeight: 130,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  previousLine: {
+    color: '#94A3B8',
+    fontSize: 18,
+    textAlign: 'right',
+  },
+  currentLine: {
+    color: '#F8FAFC',
+    fontSize: 52,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  keypad: {
+    gap: 12,
+  },
+  row: {
     flexDirection: 'row',
+    gap: 12,
+  },
+  key: {
+    flex: 1,
+    minHeight: 68,
+    borderRadius: 16,
+    backgroundColor: '#334155',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  operatorKey: {
+    backgroundColor: '#FB923C',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  equalsKey: {
+    backgroundColor: '#F97316',
+  },
+  keyText: {
+    color: '#F8FAFC',
+    fontSize: 26,
+    fontWeight: '600',
+  },
+  pressedKey: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }],
   },
 });
